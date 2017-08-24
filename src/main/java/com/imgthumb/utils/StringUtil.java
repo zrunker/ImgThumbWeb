@@ -25,8 +25,8 @@ public class StringUtil {
 		return suffix;
 	}
 	
-	// 获取文件名，不包含后缀
-	public static String getFileName(String fileName) {
+	// 获取路径，不包含后缀
+	public static String getFilePathNoSuffix(String fileName) {
 		if (!StringUtil.isEmpty(fileName) && fileName.contains(".")) {
 			fileName = fileName.substring(0, fileName.lastIndexOf("."));
 		}

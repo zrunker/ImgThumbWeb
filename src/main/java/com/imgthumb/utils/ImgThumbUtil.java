@@ -214,7 +214,7 @@ public class ImgThumbUtil {
 			// 设置输出路径（不带后缀）
 			if (StringUtil.isEmpty(outputPath)) 
 				outputPath = imagePath;
-			outputPath = StringUtil.getFileName(outputPath);
+			outputPath = StringUtil.getFilePathNoSuffix(outputPath);
 			// toOutputStream(流对象) 
 			os = new FileOutputStream(outputPath);
 			Thumbnails.of(imagePath).size(width, height).toOutputStream(os);
@@ -246,7 +246,7 @@ public class ImgThumbUtil {
 			// 设置输出路径（不带后缀）
 			if (StringUtil.isEmpty(outputPath)) 
 				outputPath = imagePath;
-			outputPath = StringUtil.getFileName(outputPath) + "." + imageStyle;
+			outputPath = StringUtil.getFilePathNoSuffix(outputPath) + "." + imageStyle;
 			// toBufferedImage
 			thumbnail = Thumbnails.of(imagePath).size(width, height).asBufferedImage();
 			ImageIO.write(thumbnail, imgStyle, new File(outputPath));  
@@ -274,7 +274,7 @@ public class ImgThumbUtil {
 			// 设置输出路径（不带后缀）
 			if (StringUtil.isEmpty(outputPath)) 
 				outputPath = imagePath;
-			outputPath = StringUtil.getFileName(outputPath);
+			outputPath = StringUtil.getFilePathNoSuffix(outputPath);
 			// 进行格式转换
 			// outputFormat：输出的图片格式。注意使用该方法后toFile()方法不要再含有文件类型的后缀了，否则会生成 imagename.jpg.jpg 的图片。
 			Thumbnails.of(imagePath).scale(1f).outputFormat(imgStyle).toFile(outputPath);
@@ -303,7 +303,7 @@ public class ImgThumbUtil {
 			// 设置输出路径（不带后缀）
 			if (StringUtil.isEmpty(outputPath)) 
 				outputPath = imagePath;
-			outputPath = StringUtil.getFileName(outputPath);
+			outputPath = StringUtil.getFilePathNoSuffix(outputPath);
 			// 进行格式转换
 			Thumbnails.of(imagePath).size(width, height).outputFormat(imgStyle).toFile(outputPath);
 		} catch (IOException e) {
@@ -327,20 +327,28 @@ public class ImgThumbUtil {
 			// 设置输出路径（不带后缀）
 			if (StringUtil.isEmpty(outputPath)) 
 				outputPath = imagePath;
-			outputPath = StringUtil.getFileName(outputPath);
+			outputPath = StringUtil.getFilePathNoSuffix(outputPath);
 			// 压缩文件，Thumbnails对png,gif之类的不可压缩图片处理并不好
 			if ("png".equals(imgStyle.toLowerCase())) {// png压缩
-				File file = new File(imagePath);
-				BufferedImage bufferedImage = ImageIO.read(file);// 获取BufferedImage流
-				quality = quality * 2.2 > 1 ? 1 : quality * 2.2f;// 设置压缩质量参数，png大约等于2.2*jpeg
-				byte[] tempByte = zoomBufferedImageByQuality(bufferedImage, quality);// JDK压缩图片质量
-				// 创建输出文件
-				File outFile = new File(outputPath + "." + imgStyle);
-				FileOutputStream fos = new FileOutputStream(outFile);
-				fos.write(tempByte);
-				fos.close();
-				if (!outFile.exists()) {
-					return false;
+//				File file = new File(imagePath);
+//				BufferedImage bufferedImage = ImageIO.read(file);// 获取BufferedImage流
+//				quality = quality * 2.2 > 1 ? 1 : quality * 2.2f;// 设置压缩质量参数，png大约等于2.2*jpeg
+//				byte[] tempByte = zoomBufferedImageByQuality(bufferedImage, quality);// JDK压缩图片质量
+//				// 创建输出文件
+//				File outFile = new File(outputPath + "." + imgStyle);
+//				FileOutputStream fos = new FileOutputStream(outFile);
+//				fos.write(tempByte);
+//				fos.close();
+//				if (!outFile.exists()) {
+//					return false;
+//				}
+				
+				Thumbnails.of(imagePath).scale(1f).outputQuality(quality).outputFormat("jpg").toFile(outputPath);
+				modifyImgStyle(outputPath + ".jpg", ImageStyleEnum.PNG, outputPath);
+				// 删除临时文件
+				File tempFile = new File(outputPath + ".jpg");
+				if (tempFile.exists()) {
+					tempFile.delete();
 				}
 			} else if ("gif".equals(imgStyle.toLowerCase())) {// gif压缩
 				quality = quality / 8;// 重新计算压缩质量值，这里只是取一个大约值，具体计算规则不清楚
@@ -369,7 +377,7 @@ public class ImgThumbUtil {
 			// 设置输出路径（不带后缀）
 			if (StringUtil.isEmpty(outputPath)) 
 				outputPath = imagePath;
-			outputPath = StringUtil.getFileName(outputPath);
+			outputPath = StringUtil.getFilePathNoSuffix(outputPath);
 			// 压缩文件
 			Thumbnails.of(imagePath).forceSize(width, height).toFile(outputPath);
 		} catch (IOException e) {
@@ -391,7 +399,7 @@ public class ImgThumbUtil {
 			// 设置输出路径（不带后缀）
 			if (StringUtil.isEmpty(outputPath)) 
 				outputPath = imagePath;
-			outputPath = StringUtil.getFileName(outputPath);
+			outputPath = StringUtil.getFilePathNoSuffix(outputPath);
 			// 压缩文件
 			Thumbnails.of(imagePath).size(width, height).keepAspectRatio(true).toFile(outputPath);
 		} catch (IOException e) {
@@ -417,7 +425,7 @@ public class ImgThumbUtil {
 				// 设置输出路径（不带后缀）
 				if (StringUtil.isEmpty(outputPath)) 
 					outputPath = imagePath;
-				outputPath = StringUtil.getFileName(outputPath) + "." + imgStyle;
+				outputPath = StringUtil.getFilePathNoSuffix(outputPath) + "." + imgStyle;
 				// 压缩文件
 				Thumbnails.of(image).scale(scale).toFile(outputPath);
 				bool = true;
@@ -460,7 +468,7 @@ public class ImgThumbUtil {
 			// 设置输出路径（不带后缀）
 			if (StringUtil.isEmpty(outputPath)) 
 				outputPath = imagePath;
-			outputPath = StringUtil.getFileName(outputPath);
+			outputPath = StringUtil.getFilePathNoSuffix(outputPath);
 			builder.outputFormat(imgStyle).toFile(outputPath);
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
@@ -482,10 +490,10 @@ public class ImgThumbUtil {
 			// 设置输出路径（不带后缀）
 			if (StringUtil.isEmpty(outputPath)) 
 				outputPath = imagePath;
-			outputPath = StringUtil.getFileName(outputPath);
+			outputPath = StringUtil.getFilePathNoSuffix(outputPath);
 			// 裁剪
 			Thumbnails.of(imagePath)  
-				.sourceRegion(Positions.CENTER, width, height)
+				.sourceRegion(position, width, height)
 			    .size(width, height)  
 			    .keepAspectRatio(false)  
 			    .toFile(outputPath);
@@ -507,7 +515,7 @@ public class ImgThumbUtil {
 			// 设置输出路径（不带后缀）
 			if (StringUtil.isEmpty(outputPath)) 
 				outputPath = imagePath;
-			outputPath = StringUtil.getFileName(outputPath);
+			outputPath = StringUtil.getFilePathNoSuffix(outputPath);
 			// 旋转
 			Thumbnails.of(imagePath).scale(1f).rotate(angle).toFile(outputPath);
 		} catch (IOException e) {
@@ -522,20 +530,21 @@ public class ImgThumbUtil {
 	 * @param imagePath 原图片路径地址，如：F:\\a.png
 	 * @param width 原图片宽
 	 * @param height 原图片高
+	 * @param position 裁剪位置
 	 * @param watermarkImgPath 水印图片路径地址，如：F:\\b.png
 	 * @param opacity 水印图片透明度  0~1f
 	 * @param outputPath 输出文件路径（不带后缀），如：F:\\b，默认与原图片路径相同，为空时将会替代原文件
 	 */
-	public void watermarkImage(String imagePath, int width, int height, String watermarkImgPath, float opacity, String outputPath) {
+	public void watermarkImage(String imagePath, int width, int height, Position position, String watermarkImgPath, float opacity, String outputPath) {
 		try {
 			// 设置输出路径（不带后缀）
 			if (StringUtil.isEmpty(outputPath)) 
 				outputPath = imagePath;
-			outputPath = StringUtil.getFileName(outputPath);
+			outputPath = StringUtil.getFilePathNoSuffix(outputPath);
 			// 水印
 			Thumbnails.of(imagePath)
 				.size(width, height)
-				.watermark(Positions.CENTER, ImageIO.read(new File(watermarkImgPath)), opacity)
+				.watermark(position, ImageIO.read(new File(watermarkImgPath)), opacity)
 				.outputQuality(1f)
 				.toFile(outputPath);
 		} catch (IOException e) {
@@ -556,6 +565,8 @@ public class ImgThumbUtil {
 //		rotateImage("F:\\bd.png", -90, null);
 //		watermarkImage("F:\\b.png", 1920, 400, "F:\\e.png", 0.5f, "F:\\bc");
 //		cropImage("F:\\b.png", 400, 400, Positions.CENTER, "F:\\cc");
+		
+		getInstance().compressImageByQuality("F:\\efd.png", 0.8f, "F:\\efdd.png");
 	}
 
 }

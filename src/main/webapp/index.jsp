@@ -31,9 +31,9 @@ function startCompress() {
 	alert("开始");
 	$.get("<%=basePath%>image/quality/compress", 
 		{
-			imagePath : "F:\\c.gif",
+			imagePath : "F:\\efd.png",
 			quality : 0.4,
-			outputPath : "F:\\d"
+			outputPath : "F:\\bcdde"
 		}, function (result) {
 			console.log(result);
 		});
