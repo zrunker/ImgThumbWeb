@@ -5,7 +5,6 @@ import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
-import java.awt.image.MultiPixelPackedSampleModel;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -19,6 +18,8 @@ import javax.imageio.ImageIO;
 import javax.imageio.ImageTypeSpecifier;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
+import javax.imageio.metadata.IIOMetadata;
+import javax.imageio.stream.ImageOutputStream;
 
 import net.coobird.thumbnailator.Thumbnails;
 import net.coobird.thumbnailator.Thumbnails.Builder;
@@ -59,13 +60,15 @@ public class ImgThumbUtil {
 	 * @throws IOException
 	 */
 	public byte[] zoomBufferedImageByQuality(BufferedImage bufferedImage, float quality) {
+		ImageOutputStream imageOutputStream = null;
 		ByteArrayOutputStream byteArrayOutputStream = null;
+		ImageWriter writer = null;
 		// 获取压缩后的btye
 		byte[] tempByte = null;
 		try {
 			// 得到指定Format图片的writer
 			Iterator<ImageWriter> iter = ImageIO.getImageWritersByFormatName("jpeg");// 得到迭代器
-			ImageWriter writer = (ImageWriter) iter.next(); // 得到writer
+			writer = (ImageWriter) iter.next(); // 得到writer
 
 			// 得到指定writer的输出参数设置(ImageWriteParam)
 			ImageWriteParam iwp = writer.getDefaultWriteParam();
@@ -75,28 +78,39 @@ public class ImgThumbUtil {
 
 			ColorModel colorModel = ColorModel.getRGBdefault();
 			// 指定压缩时使用的色彩模式
-			iwp.setDestinationType(
-					new ImageTypeSpecifier(colorModel, 
-							colorModel.createCompatibleSampleModel(16, 16)));
+			iwp.setDestinationType(new ImageTypeSpecifier(colorModel, colorModel.createCompatibleSampleModel(16, 16)));
+			
+//			IIOMetadata imageMetaData = writer.getDefaultImageMetadata(new ImageTypeSpecifier(bufferedImage), iwp);
 			
 			// 开始打包图片，写入byte[]
 			byteArrayOutputStream = new ByteArrayOutputStream(); // 取得内存输出流
 			IIOImage iIamge = new IIOImage(bufferedImage, null, null);
 			// 此处因为ImageWriter中用来接收write信息的output要求必须是ImageOutput
+			imageOutputStream = ImageIO.createImageOutputStream(byteArrayOutputStream);
 			// 通过ImageIo中的静态方法，得到byteArrayOutputStream的ImageOutput
-			writer.setOutput(ImageIO.createImageOutputStream(byteArrayOutputStream));
+			writer.setOutput(imageOutputStream);
 			writer.write(null, iIamge, iwp);
 			
 			tempByte = byteArrayOutputStream.toByteArray();
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
+			if (imageOutputStream != null) {
+				try {
+					imageOutputStream.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 			if (byteArrayOutputStream != null) {
 				try {
 					byteArrayOutputStream.close();
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
+			}
+			if (writer != null) {
+				writer.dispose();
 			}
 		}
 		return tempByte;
