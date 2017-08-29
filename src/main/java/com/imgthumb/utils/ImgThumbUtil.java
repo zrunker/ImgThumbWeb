@@ -5,6 +5,7 @@ import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
+import java.awt.image.MultiPixelPackedSampleModel;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -57,31 +58,47 @@ public class ImgThumbUtil {
 	 * @return
 	 * @throws IOException
 	 */
-	public byte[] zoomBufferedImageByQuality(BufferedImage bufferedImage, float quality) throws IOException {
-		// 得到指定Format图片的writer
-		Iterator<ImageWriter> iter = ImageIO.getImageWritersByFormatName("jpeg");// 得到迭代器
-		ImageWriter writer = (ImageWriter) iter.next(); // 得到writer
-
-		// 得到指定writer的输出参数设置(ImageWriteParam)
-		ImageWriteParam iwp = writer.getDefaultWriteParam();
-		iwp.setCompressionMode(ImageWriteParam.MODE_EXPLICIT); // 设置可否压缩
-		iwp.setCompressionQuality(quality); // 设置压缩质量参数
-		iwp.setProgressiveMode(ImageWriteParam.MODE_DISABLED);
-
-		ColorModel colorModel = ColorModel.getRGBdefault();
-		// 指定压缩时使用的色彩模式
-		iwp.setDestinationType(new ImageTypeSpecifier(colorModel, colorModel.createCompatibleSampleModel(16, 16)));
-
-		// 开始打包图片，写入byte[]
-		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(); // 取得内存输出流
-		IIOImage iIamge = new IIOImage(bufferedImage, null, null);
-		// 此处因为ImageWriter中用来接收write信息的output要求必须是ImageOutput
-		// 通过ImageIo中的静态方法，得到byteArrayOutputStream的ImageOutput
-		writer.setOutput(ImageIO.createImageOutputStream(byteArrayOutputStream));
-		writer.write(null, iIamge, iwp);
-
+	public byte[] zoomBufferedImageByQuality(BufferedImage bufferedImage, float quality) {
+		ByteArrayOutputStream byteArrayOutputStream = null;
 		// 获取压缩后的btye
-		byte[] tempByte = byteArrayOutputStream.toByteArray();
+		byte[] tempByte = null;
+		try {
+			// 得到指定Format图片的writer
+			Iterator<ImageWriter> iter = ImageIO.getImageWritersByFormatName("jpeg");// 得到迭代器
+			ImageWriter writer = (ImageWriter) iter.next(); // 得到writer
+
+			// 得到指定writer的输出参数设置(ImageWriteParam)
+			ImageWriteParam iwp = writer.getDefaultWriteParam();
+			iwp.setCompressionMode(ImageWriteParam.MODE_EXPLICIT); // 设置可否压缩
+			iwp.setCompressionQuality(quality); // 设置压缩质量参数
+			iwp.setProgressiveMode(ImageWriteParam.MODE_DISABLED);
+
+			ColorModel colorModel = ColorModel.getRGBdefault();
+			// 指定压缩时使用的色彩模式
+			iwp.setDestinationType(
+					new ImageTypeSpecifier(colorModel, 
+							colorModel.createCompatibleSampleModel(16, 16)));
+			
+			// 开始打包图片，写入byte[]
+			byteArrayOutputStream = new ByteArrayOutputStream(); // 取得内存输出流
+			IIOImage iIamge = new IIOImage(bufferedImage, null, null);
+			// 此处因为ImageWriter中用来接收write信息的output要求必须是ImageOutput
+			// 通过ImageIo中的静态方法，得到byteArrayOutputStream的ImageOutput
+			writer.setOutput(ImageIO.createImageOutputStream(byteArrayOutputStream));
+			writer.write(null, iIamge, iwp);
+			
+			tempByte = byteArrayOutputStream.toByteArray();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if (byteArrayOutputStream != null) {
+				try {
+					byteArrayOutputStream.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 		return tempByte;
 	}
 	
@@ -94,33 +111,46 @@ public class ImgThumbUtil {
 	 * @param outputPath 输出文件路径（不带后缀），如：F:\\b，默认与原图片路径相同，为空时将会替代原文件
 	 * @throws IOException
 	 */
-	public void zoomGifByQuality(String imagePath, String imgStyle, float quality, String outputPath) throws IOException {
-		// 防止图片后缀与图片本身类型不一致的情况
-		outputPath = outputPath + "." + imgStyle;
-		// GIF需要特殊处理
-		GifDecoder decoder = new GifDecoder();
-		int status = decoder.read(imagePath);
-		if (status != GifDecoder.STATUS_OK) {
-			throw new IOException("read image " + imagePath + " error!");
+	public void zoomGifByQuality(String imagePath, String imgStyle, float quality, String outputPath) {
+		ByteArrayInputStream in = null;
+		try {
+			// 防止图片后缀与图片本身类型不一致的情况
+			outputPath = outputPath + "." + imgStyle;
+			// GIF需要特殊处理
+			GifDecoder decoder = new GifDecoder();
+			int status = decoder.read(imagePath);
+			if (status != GifDecoder.STATUS_OK) {
+				throw new IOException("read image " + imagePath + " error!");
+			}
+			// LZW算法压缩，拆分一帧一帧的压缩之后合成
+			AnimatedGifEncoder encoder = new AnimatedGifEncoder();
+			encoder.start(outputPath);// 设置合成位置
+			encoder.setRepeat(decoder.getLoopCount());// 设置GIF重复次数
+			int frameCount = decoder.getFrameCount();// 获取GIF有多少个frame
+			for (int i = 0; i < frameCount; i++) {
+				encoder.setDelay(decoder.getDelay(i));// 设置GIF延迟时间
+				BufferedImage bufferedImage = decoder.getFrame(i);
+				// 利用java SDK压缩BufferedImage
+				byte[] tempByte = zoomBufferedImageByQuality(bufferedImage, quality);
+				in = new ByteArrayInputStream(tempByte);
+				BufferedImage zoomImage = ImageIO.read(in);
+				encoder.addFrame(zoomImage);// 合成
+			}
+			encoder.finish();
+			File outFile = new File(outputPath);
+			BufferedImage image = ImageIO.read(outFile);
+			ImageIO.write(image, outFile.getName(), outFile);
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if (in != null) {
+				try {
+					in.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
-		// LZW算法压缩，拆分一帧一帧的压缩之后合成
-		AnimatedGifEncoder encoder = new AnimatedGifEncoder();
-		encoder.start(outputPath);// 设置合成位置
-		encoder.setRepeat(decoder.getLoopCount());// 设置GIF重复次数
-		int frameCount = decoder.getFrameCount();// 获取GIF有多少个frame
-		for (int i = 0; i < frameCount; i++) {
-			encoder.setDelay(decoder.getDelay(i));// 设置GIF延迟时间
-			BufferedImage bufferedImage = decoder.getFrame(i);
-			// 利用java SDK压缩BufferedImage
-			byte[] tempByte = zoomBufferedImageByQuality(bufferedImage, quality);
-			ByteArrayInputStream in = new ByteArrayInputStream(tempByte);
-			BufferedImage zoomImage = ImageIO.read(in);
-			encoder.addFrame(zoomImage);// 合成
-		}
-		encoder.finish();
-		File outFile = new File(outputPath);
-		BufferedImage image = ImageIO.read(outFile);
-		ImageIO.write(image, outFile.getName(), outFile);
 	}
 	
 	/**
@@ -133,34 +163,38 @@ public class ImgThumbUtil {
 	 * @param outputPath 输出文件路径（不带后缀），如：F:\\b，默认与原图片路径相同，为空时将会替代原文件
 	 * @throws IOException
 	 */
-	public void zoomGifBySize(String imagePath, String imgStyle, int width, int height, String outputPath) throws IOException {
-		// 防止图片后缀与图片本身类型不一致的情况
-		outputPath = outputPath + "." + imgStyle;
+	public void zoomGifBySize(String imagePath, String imgStyle, int width, int height, String outputPath) {
+		try {
+			// 防止图片后缀与图片本身类型不一致的情况
+			outputPath = outputPath + "." + imgStyle;
 
-		// GIF需要特殊处理
-		GifDecoder decoder = new GifDecoder();
-		int status = decoder.read(imagePath);
-		if (status != GifDecoder.STATUS_OK) {
-			throw new IOException("read image " + imagePath + " error!");
+			// GIF需要特殊处理
+			GifDecoder decoder = new GifDecoder();
+			int status = decoder.read(imagePath);
+			if (status != GifDecoder.STATUS_OK) {
+				throw new IOException("read image " + imagePath + " error!");
+			}
+			// LZW算法压缩，拆分一帧一帧的压缩之后合成
+			AnimatedGifEncoder encoder = new AnimatedGifEncoder();
+			encoder.start(outputPath);
+			encoder.setRepeat(decoder.getLoopCount());
+			for (int i = 0; i < decoder.getFrameCount(); i++) {
+				encoder.setDelay(decoder.getDelay(i));// 设置播放延迟时间
+				BufferedImage bufferedImage = decoder.getFrame(i);// 获取每帧BufferedImage流
+				BufferedImage zoomImage = new BufferedImage(width, height, bufferedImage.getType());
+				Image image = bufferedImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+				Graphics gc = zoomImage.getGraphics();
+				gc.setColor(Color.WHITE);
+				gc.drawImage(image, 0, 0, null);
+				encoder.addFrame(zoomImage);
+			}
+			encoder.finish();
+			File outFile = new File(outputPath);
+			BufferedImage image = ImageIO.read(outFile);
+			ImageIO.write(image, outFile.getName(), outFile);
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
-		// LZW算法压缩，拆分一帧一帧的压缩之后合成
-		AnimatedGifEncoder encoder = new AnimatedGifEncoder();
-		encoder.start(outputPath);
-		encoder.setRepeat(decoder.getLoopCount());
-		for (int i = 0; i < decoder.getFrameCount(); i++) {
-			encoder.setDelay(decoder.getDelay(i));// 设置播放延迟时间
-			BufferedImage bufferedImage = decoder.getFrame(i);// 获取每帧BufferedImage流
-			BufferedImage zoomImage = new BufferedImage(width, height, bufferedImage.getType());
-			Image image = bufferedImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
-			Graphics gc = zoomImage.getGraphics();
-			gc.setColor(Color.WHITE);
-			gc.drawImage(image, 0, 0, null);
-			encoder.addFrame(zoomImage);
-		}
-		encoder.finish();
-		File outFile = new File(outputPath);
-		BufferedImage image = ImageIO.read(outFile);
-		ImageIO.write(image, outFile.getName(), outFile);
 	}
 	
 	/**
