@@ -18,7 +18,6 @@ import javax.imageio.ImageIO;
 import javax.imageio.ImageTypeSpecifier;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
-import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.stream.ImageOutputStream;
 
 import net.coobird.thumbnailator.Thumbnails;
@@ -79,7 +78,6 @@ public class ImgThumbUtil {
 			ColorModel colorModel = ColorModel.getRGBdefault();
 			// 指定压缩时使用的色彩模式
 			iwp.setDestinationType(new ImageTypeSpecifier(colorModel, colorModel.createCompatibleSampleModel(16, 16)));
-			
 //			IIOMetadata imageMetaData = writer.getDefaultImageMetadata(new ImageTypeSpecifier(bufferedImage), iwp);
 			
 			// 开始打包图片，写入byte[]
@@ -361,7 +359,7 @@ public class ImgThumbUtil {
 	}
 	
 	/**
-	 * 图片尺寸不变，压缩图片文件大小。
+	 * 图片尺寸不变，压缩图片文件大小（质量）。
 	 * 
 	 * @param imagePath 原图片路径地址，如：F:\\a.png
 	 * @param quality 输出的图片质量，范围：0.0~1.0，1为最高质量。
@@ -407,6 +405,30 @@ public class ImgThumbUtil {
 			bool = true;
 		 } catch (IOException e) {
 			 logger.error(e.getMessage(), e);
+			e.printStackTrace();
+		 }
+		 return bool;
+	}
+	
+	/**
+	 * 图片尺寸不变，压缩图片文件大小（质量），输出jpg。
+	 * 
+	 * @param imagePath 原图片路径地址，如：F:\\a.png
+	 * @param quality 输出的图片质量，范围：0.0~1.0，1为最高质量。
+	 * @param outputPath 输出文件路径（不带后缀），如：F:\\b，默认与原图片路径相同，为空时将会替代原文件
+	 */
+	public boolean compressImageToJpgByQuality(String imagePath, float quality, String outputPath) {
+		boolean bool = false;
+		try {
+			// 设置输出路径（不带后缀）
+			if (StringUtil.isEmpty(outputPath)) 
+				outputPath = imagePath;
+			outputPath = StringUtil.getFilePathNoSuffix(outputPath);
+			// 压缩文件，Thumbnails对png,gif之类的不可压缩图片处理并不好
+			Thumbnails.of(imagePath).scale(1f).outputQuality(quality).outputFormat("jpg").toFile(outputPath);
+			bool = true;
+		 } catch (IOException e) {
+			logger.error(e.getMessage(), e);
 			e.printStackTrace();
 		 }
 		 return bool;
@@ -542,6 +564,34 @@ public class ImgThumbUtil {
 			// 裁剪
 			Thumbnails.of(imagePath)  
 				.sourceRegion(position, width, height)
+			    .size(width, height)  
+			    .keepAspectRatio(false)  
+			    .toFile(outputPath);
+		} catch (IOException e) {
+			logger.error(e.getMessage(), e);
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 裁剪2
+	 * 
+	 * @param imagePath  原图片路径地址，如：F:\\a.png
+	 * @param width 裁剪区域宽
+	 * @param height 裁剪区域高
+	 * @param x 裁剪位置x坐标
+	 * @param y 裁剪位置y坐标
+	 * @param outputPath 输出文件路径（不带后缀），如：F:\\b，默认与原图片路径相同，为空时将会替代原文件
+	 */
+	public void cropImage2(String imagePath, int width, int height, int x, int y, String outputPath) {
+		try {
+			// 设置输出路径（不带后缀）
+			if (StringUtil.isEmpty(outputPath)) 
+				outputPath = imagePath;
+			outputPath = StringUtil.getFilePathNoSuffix(outputPath);
+			// 裁剪
+			Thumbnails.of(imagePath)  
+				.sourceRegion(x, y, width, height)
 			    .size(width, height)  
 			    .keepAspectRatio(false)  
 			    .toFile(outputPath);
