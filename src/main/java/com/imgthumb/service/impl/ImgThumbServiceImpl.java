@@ -72,4 +72,41 @@ public class ImgThumbServiceImpl implements ImgThumbService {
 		return new ResultData<>(resultCode, resultMsg, data);
 	}
 
+	/**
+	 * 图片尺寸不变，压缩图片文件大小（质量），输出jpg。
+	 * 
+	 * @param imagePath 原图片路径地址，如：F:\\a.png
+	 * @param quality 输出的图片质量，范围：0.0~1.0，1为最高质量。
+	 * @param outputPath 输出文件路径（不带后缀），如：F:\\b，默认与原图片路径相同，为空时将会替代原文件
+	 */
+	@Override
+	public ResultData<ImageInfoEntity> compressImageToJpgByQuality(
+			String imagePath, float quality, String outputPath) {
+		String resultMsg = null;
+		int resultCode = -1;
+		ImageInfoEntity data = null;
+		if (StringUtil.isEmpty(imagePath)
+				|| quality < 0
+				|| quality > 1
+				|| !RegularExpressionUtil.isImage(imagePath)) {
+			resultCode = ConstanceUtil.RESULT_INPUT_ERROR_CODE;
+			resultMsg = ConstanceUtil.RESULT_INPUT_ERROR_MSG;
+		} else {
+			// 处理图片
+			boolean bool = ImgThumbUtil.getInstance().compressImageToJpgByQuality(imagePath, quality, outputPath);
+			if (bool) {
+				// 获取处理后的图片信息
+				data = formatImageInfo(imagePath, outputPath);
+				// 成功
+				resultCode = ConstanceUtil.RESULT_SUCCESS_CODE;
+				resultMsg = ConstanceUtil.RESULT_SUCCESS_MSG;
+			} else {
+				// 失败
+				resultCode = ConstanceUtil.RESULT_FAILED_CODE;
+				resultMsg = ConstanceUtil.RESULT_FAILED_MSG;
+			}
+		}
+		return new ResultData<>(resultCode, resultMsg, data);
+	}
+
 }
