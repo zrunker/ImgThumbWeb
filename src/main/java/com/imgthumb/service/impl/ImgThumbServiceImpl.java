@@ -98,7 +98,7 @@ public class ImgThumbServiceImpl implements ImgThumbService {
 			boolean bool = ImgThumbUtil.getInstance().compressImageToJpgByQuality(imagePath, quality, outputPath);
 			if (bool) {
 				// 获取处理后的图片信息
-				imagePath = StringUtil.getFilePathNoSuffix(imagePath) + ImageStyleEnum.stateInfoOf("JPG");
+				imagePath = StringUtil.getFilePathNoSuffix(imagePath) + "." + ImageStyleEnum.stateInfoOf("JPG");
 				data = formatImageInfo(imagePath, outputPath);
 				// 成功
 				resultCode = ConstanceUtil.RESULT_SUCCESS_CODE;

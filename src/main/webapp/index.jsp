@@ -27,7 +27,7 @@
 </body>
 <script type="text/javascript" src="js/jquery-3.2.1.min.js"></script>
 <script type="text/javascript">
-function startCompress() {
+<%-- function startCompress() {
 	alert("开始");
 	$.get("<%=basePath%>image/quality/compress", 
 		{
@@ -37,6 +37,17 @@ function startCompress() {
 		}, function (result) {
 			console.log(result);
 		});
-}
+} --%>
+function startCompress() {
+	alert("开始");
+	$.get("<%=basePath%>image/quality/compress/tojpg", 
+		{
+			imagePath : "F:\\efd.png",
+			quality : 0.4,
+			outputPath : "F:\\bcdde"
+		}, function (result) {
+			console.log(result);
+		});
+};
 </script>
 </html>
