@@ -12,7 +12,7 @@ public class FileUtil {
 	/**
 	 * 获取文件名
 	 * 
-	 * @param imagePath 源文件地址
+	 * @param filePath 源文件地址
 	 * @return
 	 */
 	public static String getFileName(String filePath) {
@@ -22,4 +22,5 @@ public class FileUtil {
 		}
 		return "";
 	}
+	
 }

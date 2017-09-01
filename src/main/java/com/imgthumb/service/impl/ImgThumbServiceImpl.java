@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 
 import com.imgthumb.dto.ResultData;
 import com.imgthumb.entity.ImageInfoEntity;
+import com.imgthumb.enums.ImageStyleEnum;
 import com.imgthumb.service.ImgThumbService;
 import com.imgthumb.utils.ConstanceUtil;
 import com.imgthumb.utils.FileUtil;
@@ -25,6 +26,7 @@ public class ImgThumbServiceImpl implements ImgThumbService {
 		if (StringUtil.isEmpty(outputPath)) {
 			outputPath = imagePath;
 		} else {
+			outputPath = StringUtil.getFilePathNoSuffix(outputPath);
 			outputPath = outputPath + "." + imgStyle;
 		}
 		ImageInfoEntity data = new ImageInfoEntity(
@@ -96,6 +98,7 @@ public class ImgThumbServiceImpl implements ImgThumbService {
 			boolean bool = ImgThumbUtil.getInstance().compressImageToJpgByQuality(imagePath, quality, outputPath);
 			if (bool) {
 				// 获取处理后的图片信息
+				imagePath = StringUtil.getFilePathNoSuffix(imagePath) + ImageStyleEnum.stateInfoOf("JPG");
 				data = formatImageInfo(imagePath, outputPath);
 				// 成功
 				resultCode = ConstanceUtil.RESULT_SUCCESS_CODE;

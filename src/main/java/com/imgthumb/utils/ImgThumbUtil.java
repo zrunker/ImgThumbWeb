@@ -425,7 +425,7 @@ public class ImgThumbUtil {
 				outputPath = imagePath;
 			outputPath = StringUtil.getFilePathNoSuffix(outputPath);
 			// 压缩文件，Thumbnails对png,gif之类的不可压缩图片处理并不好
-			Thumbnails.of(imagePath).scale(1f).outputQuality(quality).outputFormat("jpg").toFile(outputPath);
+			Thumbnails.of(imagePath).scale(1f).outputQuality(quality).outputFormat(ImageStyleEnum.stateInfoOf("JPG")).toFile(outputPath);
 			bool = true;
 		 } catch (IOException e) {
 			logger.error(e.getMessage(), e);
